@@ -13,8 +13,9 @@ type Ngrams struct {
 }
 
 const keySeparator = "-"
-const MagicStartToken = "ES345CdEcc46df363"
-const MagicSentenceToken = "a43UdgD567fgX67UIfg"
+const MagicStartToken = "MAGIC_START_TOKEN"
+const MagicSentenceToken = "MAGIC_SENTENCE_TOKEN"
+const MagicDialogToken = "MAGIC_DIALOG_TOKEN"
 
 func NewState() *Ngrams {
 	return &Ngrams{

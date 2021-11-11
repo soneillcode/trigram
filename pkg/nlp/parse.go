@@ -50,7 +50,8 @@ func tokenize(text string) []string {
 					tokens = append(tokens, string(word))
 					word = word[:0]
 				}
-				tokens = append(tokens, "\"")
+				tokens = append(tokens, state.MagicDialogToken)
+				isWord = false
 				continue
 			}
 			if r == '“' {
@@ -58,7 +59,8 @@ func tokenize(text string) []string {
 					tokens = append(tokens, string(word))
 					word = word[:0]
 				}
-				tokens = append(tokens, "“")
+				tokens = append(tokens, state.MagicDialogToken)
+				isWord = false
 				continue
 			}
 			if r == '”' {
@@ -66,7 +68,8 @@ func tokenize(text string) []string {
 					tokens = append(tokens, string(word))
 					word = word[:0]
 				}
-				tokens = append(tokens, "”")
+				tokens = append(tokens, state.MagicDialogToken)
+				isWord = false
 				continue
 			}
 			if r == '?' {
@@ -74,7 +77,8 @@ func tokenize(text string) []string {
 					tokens = append(tokens, string(word))
 					word = word[:0]
 				}
-				tokens = append(tokens, "”")
+				tokens = append(tokens, "?")
+				isWord = false
 				continue
 			}
 			// handle standard alphanumeric character
