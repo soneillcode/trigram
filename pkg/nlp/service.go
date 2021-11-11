@@ -1,12 +1,9 @@
 package nlp
 
 import (
-	"fmt"
-	"log"
-	"strconv"
 	"strings"
 
-	"example.com/todo/pkg/nlp/state"
+	"example.com/todo/pkg/state"
 )
 
 /*
@@ -14,14 +11,14 @@ import (
 */
 
 type Service struct {
-	defaultLength string
-	state         *state.State
+	defaultNumberSentences int
+	state                  *state.Ngrams
 }
 
 func NewService() *Service {
 	return &Service{
-		defaultLength: "120",
-		state:         state.NewState(),
+		defaultNumberSentences: 12,
+		state:                  state.NewState(),
 	}
 }
 
@@ -34,120 +31,63 @@ func (s *Service) Learn(text string) error {
 	tokens := tokenize(text)
 
 	for i, t := range tokens {
+		if i == 0 {
+			s.state.StoreBigram(state.MagicStartToken, t)
+		}
 		if i == 1 {
-			s.state.Store("", tokens[i-1], t)
+			s.state.StoreTrigram(state.MagicStartToken, tokens[i-1], t)
 		}
 		if i > 1 {
-			s.state.Store(tokens[i-2], tokens[i-1], t)
+			word1 := tokens[i-2]
+			word2 := tokens[i-1]
+			if word2 == state.MagicSentenceToken {
+				// we don't store the end of the sentence in relation to the start of one
+				s.state.StoreBigram(word2, t)
+			} else {
+				s.state.StoreTrigram(word1, word2, t)
+			}
 		}
 	}
 
 	return nil
 }
 
-func tokenize(text string) []string {
-	var tokens []string
-	var isWord = false
-	var word []rune
-	for _, r := range text {
-		if r != ' ' {
-			// todo filter tokens list and common handling
-			// filter end of line
-			if r == '\n' {
-				continue
-			}
-			// filter comma
-			if r == ',' {
-				continue
-			}
-			// filter semi colon
-			if r == ';' {
-				continue
-			}
-			// filter underscore
-			if r == '_' {
-				continue
-			}
-			// add full stops as a distinct token
-			if r == '.' {
-				if len(word) > 0 {
-					tokens = append(tokens, string(word))
-					word = word[:0]
-				}
-				tokens = append(tokens, ".")
-				continue
-			}
-			// add quotes as a distinct token
-			// todo distinct tokens list and common handling
-			if r == '"' {
-				if len(word) > 0 {
-					tokens = append(tokens, string(word))
-					word = word[:0]
-				}
-				tokens = append(tokens, "\"")
-				continue
-			}
-			if r == '“' {
-				if len(word) > 0 {
-					tokens = append(tokens, string(word))
-					word = word[:0]
-				}
-				tokens = append(tokens, "“")
-				continue
-			}
-			if r == '”' {
-				if len(word) > 0 {
-					tokens = append(tokens, string(word))
-					word = word[:0]
-				}
-				tokens = append(tokens, "”")
-				continue
-			}
-			if r == '?' {
-				if len(word) > 0 {
-					tokens = append(tokens, string(word))
-					word = word[:0]
-				}
-				tokens = append(tokens, "”")
-				continue
-			}
-			// handle standard alphanumeric character
-			isWord = true
-			word = append(word, r)
-		}
-		if r == ' ' {
-			if isWord {
-				tokens = append(tokens, string(word))
-				word = word[:0]
-			}
-			isWord = false
-		}
-
-	}
-	return tokens
-}
-
 func (s *Service) Generate() (*string, error) {
-	lengthVal, err := strconv.Atoi(s.defaultLength)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert length to int: %w", err)
-	}
-	log.Printf("length: %v", lengthVal)
 
-	var tokens []string
-	var word1 = ""
-	var word2 = ""
-	var word3 = s.state.Get(word1, word2)
+	var builder strings.Builder
+	builder.Grow(100)
 
-	for numSentences := 0; numSentences < 12; {
-		word3 = s.state.Get(word1, word2)
+	var newWord string
+	var word1 = s.state.GetBigram(state.MagicStartToken)
+	var word2 = s.state.GetTrigram(state.MagicStartToken, word1)
+
+	maxNumTokens := 1000
+	numTokens := 0
+	for numSentences := 0; numSentences < s.defaultNumberSentences; {
+		if word2 == state.MagicSentenceToken {
+			newWord = s.state.GetBigram(word2)
+		} else {
+			newWord = s.state.GetTrigram(word1, word2)
+		}
 		word1 = word2
-		word2 = word3
-		tokens = append(tokens, word3)
-		if word3 == "." {
+		word2 = newWord
+
+		if newWord == state.MagicSentenceToken {
 			numSentences = numSentences + 1
+			builder.WriteString(".")
+			continue
+		}
+		builder.WriteRune(' ')
+		if newWord == state.MagicStartToken {
+			builder.WriteString(" ")
+			continue
+		}
+		builder.WriteString(newWord)
+		numTokens = numTokens + 1
+		if numTokens > maxNumTokens {
+			break
 		}
 	}
-	text := strings.Join(tokens, " ")
+	text := builder.String()
 	return &text, nil
 }
