@@ -14,10 +14,9 @@ type Ngrams struct {
 
 const keySeparator = "-"
 const MagicStartToken = "MAGIC_START_TOKEN"
-const MagicSentenceToken = "MAGIC_SENTENCE_TOKEN"
 const MagicDialogToken = "MAGIC_DIALOG_TOKEN"
 
-func NewState() *Ngrams {
+func NewNgrams() *Ngrams {
 	return &Ngrams{
 		trigrams: map[string]*WordFreq{},
 		bigrams:  map[string]*WordFreq{},

@@ -1,6 +1,7 @@
 package nlp
 
 import (
+	"fmt"
 	"strings"
 
 	"example.com/todo/pkg/state"
@@ -9,117 +10,98 @@ import (
 /*
 	The nlp (Natural Language Processing) service.
 */
-
 type Service struct {
 	defaultNumberSentences int
-	state                  *state.Ngrams
-	dialogueState          *state.Ngrams
+	saneDialogLimit        int
+	standardNgrams         *state.Ngrams
+	dialogueNgrams         *state.Ngrams
 }
 
 func NewService() *Service {
 	return &Service{
 		defaultNumberSentences: 12,
-		state:                  state.NewState(),
-		dialogueState:          state.NewState(),
+		saneDialogLimit:        48,
+		standardNgrams:         state.NewNgrams(),
+		dialogueNgrams:         state.NewNgrams(),
 	}
 }
 
 func (s *Service) Learn(text string) error {
 	if text == "" {
-		return nil
+		return fmt.Errorf("missing data to learn")
 	}
 
-	// todo performance -> consider adding tokens to state as they are created to save storing them all.
+	// consider processing tokens as they are created, to save storing them all.
 	tokens := tokenize(text)
-
-	processTokens(tokens, s.state, s.dialogueState)
-
+	processTokens(tokens, s.standardNgrams, s.dialogueNgrams)
 	return nil
 }
 
-func processTokens(tokens []string, ngrams *state.Ngrams, dialogTokens *state.Ngrams) int {
+func processTokens(tokens []string, ngrams *state.Ngrams, dialogNgrams *state.Ngrams) {
 	length := len(tokens)
-	for i := 0; i < length; i = i + 1 {
-		t := tokens[i]
-		if i == 0 {
-			ngrams.StoreBigram(state.MagicStartToken, t)
-		}
-		if i == 1 {
-			ngrams.StoreTrigram(state.MagicStartToken, tokens[i-1], t)
-		}
-		if i > 1 {
-			word1 := tokens[i-2]
-			word2 := tokens[i-1]
+	var isDialog = false
+	var currentNgrams = ngrams
 
-			if word2 == state.MagicSentenceToken || word2 == state.MagicDialogToken {
-				// we don't store the end of the sentence in relation to the start of one
-				ngrams.StoreBigram(word2, t)
+	// consider using a stream of tokens instead of manual index handling
+	for i := 0; i < length-2; i = i + 1 {
+		current := tokens[i]
+		next := tokens[i+1]
+		nextAgain := tokens[i+2]
+
+		if current == state.MagicStartToken {
+			currentNgrams.StoreBigram(current, next)
+		}
+
+		if current == state.MagicDialogToken {
+			if isDialog {
+				currentNgrams = ngrams
+				currentNgrams.StoreBigram(current, next)
 			} else {
-				ngrams.StoreTrigram(word1, word2, t)
+				currentNgrams = dialogNgrams
+				currentNgrams.StoreBigram(current, next)
 			}
-
-			if t == state.MagicDialogToken {
-				newIndex := processDialogTokens(tokens[i+1:], dialogTokens)
-				i = i + newIndex + 1 // 2 for the dialog end token
-			}
+			isDialog = !isDialog
 		}
+
+		// we don't store data that crosses magic tokens, this allows flexibility when generating
+		if next == state.MagicStartToken || next == state.MagicDialogToken {
+			continue
+		}
+		currentNgrams.StoreTrigram(current, next, nextAgain)
 	}
-	return len(tokens) - 1
-}
-
-func processDialogTokens(tokens []string, ngrams *state.Ngrams) int {
-	length := len(tokens)
-	for i := 0; i < length; i = i + 1 {
-		t := tokens[i]
-		if i == 0 {
-			ngrams.StoreBigram(state.MagicDialogToken, t)
-		}
-		if i == 1 {
-			ngrams.StoreTrigram(state.MagicDialogToken, tokens[i-1], t)
-		}
-		if i > 1 {
-			word1 := tokens[i-2]
-			word2 := tokens[i-1]
-
-			if word2 == state.MagicSentenceToken {
-				// we don't store the end of the sentence in relation to the start of one
-				ngrams.StoreBigram(word2, t)
-			} else {
-				ngrams.StoreTrigram(word1, word2, t)
-			}
-			if t == state.MagicDialogToken {
-				return i
-			}
-		}
-	}
-	return len(tokens) - 1 // todo an error in the data in this case to be honest
 }
 
 func (s *Service) Generate() (*string, error) {
 
 	var builder strings.Builder
-	builder.Grow(100)
+	builder.Grow(500)
 
 	var newWord string
-	var word1 = s.state.GetBigram(state.MagicStartToken)
-	var word2 = s.state.GetTrigram(state.MagicStartToken, word1)
+	var word1, word2 = getStartingWords(s.standardNgrams, state.MagicStartToken)
+	builder.WriteString(word1)
+	builder.WriteString(spaceWord)
+	builder.WriteString(word2)
 
 	maxNumTokens := 1000
 	numTokens := 0
 	for numSentences := 0; numSentences < s.defaultNumberSentences; {
-		if word2 == state.MagicSentenceToken || word2 == state.MagicDialogToken {
-			newWord = s.state.GetBigram(word2)
+
+		if word2 == state.MagicStartToken || word2 == state.MagicDialogToken {
+			newWord = s.standardNgrams.GetBigram(word2)
 		} else {
-			newWord = s.state.GetTrigram(word1, word2)
+			newWord = s.standardNgrams.GetTrigram(word1, word2)
 		}
 
 		word1 = word2
 		word2 = newWord
 
-		if newWord == state.MagicSentenceToken {
+		if newWord == state.MagicStartToken {
 			numSentences = numSentences + 1
-			builder.WriteString(".")
 			continue
+		}
+
+		if newWord != fullStopWord {
+			builder.WriteString(spaceWord)
 		}
 
 		if newWord == state.MagicDialogToken {
@@ -128,11 +110,8 @@ func (s *Service) Generate() (*string, error) {
 			continue
 		}
 
-		builder.WriteRune(' ')
-		if newWord == state.MagicStartToken {
-			continue
-		}
 		builder.WriteString(newWord)
+
 		numTokens = numTokens + 1
 		if numTokens > maxNumTokens {
 			break
@@ -142,37 +121,72 @@ func (s *Service) Generate() (*string, error) {
 	return &text, nil
 }
 
+func getStartingWords(ngram *state.Ngrams, startToken string) (string, string) {
+	// prevent infinite loops, consider getting a 'safe' Bigram that's guaranteed to be a word
+	var saneLimit = 1000
+	var currentIterations = 0
+
+	var word1 = ngram.GetBigram(startToken)
+	for word1 == state.MagicDialogToken || word1 == state.MagicStartToken {
+		currentIterations = currentIterations + 1
+		if currentIterations > saneLimit {
+			break
+		}
+		word1 = ngram.GetBigram(startToken)
+	}
+
+	currentIterations = 0
+	var word2 = ngram.GetTrigram(startToken, word1)
+	for word2 == state.MagicDialogToken || word2 == state.MagicStartToken {
+		currentIterations = currentIterations + 1
+		if currentIterations > saneLimit {
+			break
+		}
+		word2 = ngram.GetTrigram(startToken, word1)
+	}
+
+	return word1, word2
+}
+
+// quite a duplication of the standard generation function, consider refactoring with token handlers
 func (s *Service) generateDialog() string {
 	var builder strings.Builder
-	builder.Grow(100)
-	builder.WriteString("\"")
+	builder.Grow(200)
+	builder.WriteString(dialogQuoteWord)
 
 	var newWord string
-	var word1 = s.dialogueState.GetBigram(state.MagicDialogToken)
-	var word2 = s.dialogueState.GetTrigram(state.MagicDialogToken, word1)
+	var word1, word2 = getStartingWords(s.dialogueNgrams, state.MagicDialogToken)
+	builder.WriteString(word1)
+	builder.WriteString(spaceWord)
+	builder.WriteString(word2)
 
 	var numTokens = 0
-	for numTokens < 24 {
+	for numTokens < s.saneDialogLimit {
 		numTokens = numTokens + 1
 
-		newWord = s.dialogueState.GetTrigram(word1, word2)
+		if word2 == state.MagicStartToken {
+			newWord = s.dialogueNgrams.GetBigram(word2)
+		} else {
+			newWord = s.dialogueNgrams.GetTrigram(word1, word2)
+		}
 
-		if newWord == state.MagicSentenceToken {
-			builder.WriteString(".")
+		if newWord == state.MagicStartToken {
 			continue
 		}
 
 		if newWord == state.MagicDialogToken {
 			break
 		}
-		builder.WriteString(" ")
+
+		if newWord != fullStopWord {
+			builder.WriteString(spaceWord)
+		}
 		builder.WriteString(newWord)
 
 		word1 = word2
 		word2 = newWord
-
 	}
 
-	builder.WriteString("\"")
+	builder.WriteString(dialogQuoteWord)
 	return builder.String()
 }
