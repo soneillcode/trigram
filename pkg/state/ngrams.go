@@ -14,7 +14,6 @@ type Ngrams struct {
 
 const keySeparator = "-"
 const MagicStartToken = "MAGIC_START_TOKEN"
-const MagicDialogToken = "MAGIC_DIALOG_TOKEN"
 
 func NewNgrams() *Ngrams {
 	return &Ngrams{

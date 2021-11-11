@@ -3,8 +3,7 @@ package nlp
 import "example.com/todo/pkg/state"
 
 var titles = []string{"Mr", "Mrs", "Dr", "Ms"}
-var ignoreCharacters = []rune{',', ';', ':', '_'}
-var dialogCharacters = []rune{'"', '“', '”', '“'}
+var ignoreCharacters = []rune{',', ';', ':', '_', '"', '“', '”', '“'}
 
 const periodCharacter = '.'
 const spaceCharacter = ' '
@@ -12,10 +11,9 @@ const newLineCharacter = '\n'
 
 const fullStopWord = "."
 const spaceWord = " "
-const dialogQuoteWord = "\""
 
 // tokenize splits a body of text by space and newline characters. It also adds magic tokens to mark the start and end
-// of sentences and dialog.
+// of sentences.
 func tokenize(text string) []string {
 	var tokens []string
 	var word []rune
@@ -39,13 +37,6 @@ func tokenize(text string) []string {
 
 		// filter out some characters
 		if shouldIgnore(character) {
-			continue
-		}
-
-		// handle dialog characters
-		if isDialog(character) {
-			addCurrentWordToTokens()
-			tokens = append(tokens, state.MagicDialogToken)
 			continue
 		}
 
@@ -77,15 +68,6 @@ func tokenize(text string) []string {
 func shouldIgnore(character rune) bool {
 	for _, ignore := range ignoreCharacters {
 		if character == ignore {
-			return true
-		}
-	}
-	return false
-}
-
-func isDialog(character rune) bool {
-	for _, dialog := range dialogCharacters {
-		if character == dialog {
 			return true
 		}
 	}
