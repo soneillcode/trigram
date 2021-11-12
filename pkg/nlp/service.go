@@ -7,9 +7,8 @@ import (
 	"example.com/todo/pkg/state"
 )
 
-/*
-	The nlp (Natural Language Processing) service.
-*/
+// Service provides a Learn and Generate feature which stores data as ngrams and uses the ngrams to randomly generate
+// text based on stored word frequency.
 type Service struct {
 	defaultNumberSentences int
 	standardNgrams         *state.Ngrams
@@ -22,39 +21,19 @@ func NewService() *Service {
 	}
 }
 
+// Learn takes a body of text, tokenizes it and stores the tokens as ngrams with their frequency.
 func (s *Service) Learn(text string) error {
 	if text == "" {
 		return fmt.Errorf("missing data to learn")
 	}
 
 	// consider processing tokens as they are created, to save storing them all.
-	tokens := tokenize(text)
-	processTokens(tokens, s.standardNgrams)
+	tokens := getTokens(text)
+	storeTokens(tokens, s.standardNgrams)
 	return nil
 }
 
-func processTokens(tokens []string, ngrams *state.Ngrams) {
-	length := len(tokens)
-	var currentNgrams = ngrams
-
-	// consider using a stream of tokens instead of manual index handling
-	for i := 0; i < length-2; i = i + 1 {
-		current := tokens[i]
-		next := tokens[i+1]
-		nextAgain := tokens[i+2]
-
-		if current == state.MagicStartToken {
-			currentNgrams.StoreBigram(current, next)
-		}
-
-		// we don't store data that crosses magic tokens, this allows flexibility when generating
-		if next == state.MagicStartToken {
-			continue
-		}
-		currentNgrams.StoreTrigram(current, next, nextAgain)
-	}
-}
-
+// Generate uses word frequency data to randomly generate a body of text.
 func (s *Service) Generate() (*string, error) {
 
 	var builder strings.Builder
@@ -101,7 +80,7 @@ func (s *Service) Generate() (*string, error) {
 }
 
 func getStartingWords(ngram *state.Ngrams, startToken string) (string, string) {
-	// prevent infinite loops, consider getting a 'safe' Bigram that's guaranteed to be a word
+	// to prevent infinite loops, consider getting a 'safe' Bigram that's guaranteed to be a word
 	var saneLimit = 1000
 	var currentIterations = 0
 

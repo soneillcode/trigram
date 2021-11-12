@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"example.com/todo/pkg/nlp"
-	"example.com/todo/pkg/routing"
 )
 
 func main() {
@@ -27,14 +26,12 @@ func run() error {
 	nlpService := nlp.NewService()
 	nlpHandler := nlp.NewHandler(nlpService)
 
-	servicesRouter := routing.NewRouter()
-
-	servicesRouter.AddRoute("/learn", "POST", nlpHandler.Learn)
-	servicesRouter.AddRoute("/generate", "GET", nlpHandler.Generate)
+	http.HandleFunc("/learn", nlpHandler.Learn)
+	http.HandleFunc("/generate", nlpHandler.Generate)
 
 	// start server
 	log.Printf("starting server on port: %s\n", port)
-	err := http.ListenAndServe(fmt.Sprintf(":%s", port), servicesRouter)
+	err := http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 	if err != nil {
 		return fmt.Errorf("failed to listen and serve: %w", err)
 	}

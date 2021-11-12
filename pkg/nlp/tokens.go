@@ -12,26 +12,21 @@ const newLineCharacter = '\n'
 const fullStopWord = "."
 const spaceWord = " "
 
-// tokenize splits a body of text by space and newline characters. It also adds magic tokens to mark the start and end
-// of sentences.
-func tokenize(text string) []string {
+// getTokens iterates through a body of text and creates tokens delineated by space and newline characters.
+// tokens are defined as strings of non-space characters. It also adds magic tokens to mark the start and end of sentences.
+// Sentences are handled as a special case to improve the quality of text generation.
+func getTokens(text string) []string {
 	var tokens []string
 	var word []rune
-
-	addCurrentWordToTokens := func() {
-		if len(word) > 0 {
-			tokens = append(tokens, string(word))
-			// note: the intent is to use slices to empty the array instead of allocating more memory
-			// not sure this is correct
-			word = word[:0]
-		}
-	}
 
 	tokens = append(tokens, state.MagicStartToken)
 	for _, character := range text {
 
 		if character == spaceCharacter || character == newLineCharacter {
-			addCurrentWordToTokens()
+			if len(word) > 0 {
+				tokens = append(tokens, string(word))
+				word = word[:0]
+			}
 			continue
 		}
 
@@ -46,9 +41,15 @@ func tokenize(text string) []string {
 				w := string(word)
 				if isTitle(w) {
 					word = append(word, character)
-					addCurrentWordToTokens()
+					if len(word) > 0 {
+						tokens = append(tokens, string(word))
+						word = word[:0]
+					}
 				} else {
-					addCurrentWordToTokens()
+					if len(word) > 0 {
+						tokens = append(tokens, string(word))
+						word = word[:0]
+					}
 					tokens = append(tokens, fullStopWord)
 					word = word[:0]
 					tokens = append(tokens, state.MagicStartToken)
@@ -81,4 +82,27 @@ func isTitle(word string) bool {
 		}
 	}
 	return false
+}
+
+// storeTokens puts the given tokens in the ngram data structure.
+func storeTokens(tokens []string, ngrams *state.Ngrams) {
+	length := len(tokens)
+	var currentNgrams = ngrams
+
+	// consider using a stream of tokens instead of manual index handling
+	for i := 0; i < length-2; i = i + 1 {
+		current := tokens[i]
+		next := tokens[i+1]
+		nextAgain := tokens[i+2]
+
+		if current == state.MagicStartToken {
+			currentNgrams.StoreBigram(current, next)
+		}
+
+		// we don't store data that crosses magic tokens, this allows flexibility when generating
+		if next == state.MagicStartToken {
+			continue
+		}
+		currentNgrams.StoreTrigram(current, next, nextAgain)
+	}
 }
