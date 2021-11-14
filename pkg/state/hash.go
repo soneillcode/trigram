@@ -1,77 +1,58 @@
 package state
 
 import (
-	"fmt"
 	"math/rand"
+	"strings"
 	"sync"
 	"time"
 )
 
+// HashNgrams implements Ngrams using a hash map. It uses hash for fast reads. A hash map is not safe for concurrent
+// writes, so we lock a mutex to prevent concurrent writes.
 type HashNgrams struct {
-	trigrams map[string]*WordFreq
-	triMutex sync.RWMutex
-	bigrams  map[string]*WordFreq
-	biMutex  sync.RWMutex
-	random   *rand.Rand
+	mutex  sync.RWMutex
+	ngrams map[string]*WordFreq
+	random *rand.Rand
 }
 
 func NewHashNgrams() *HashNgrams {
 	return &HashNgrams{
-		trigrams: map[string]*WordFreq{},
-		bigrams:  map[string]*WordFreq{},
-		random:   rand.New(rand.NewSource(time.Now().UnixNano())),
+		ngrams: map[string]*WordFreq{},
+		random: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
-func (s *HashNgrams) StoreTrigram(word1, word2, word3 string) {
-	s.triMutex.Lock()
-	defer s.triMutex.Unlock()
+func (s *HashNgrams) Store(words ...string) {
+	key, word := getKeyAndWord(words...)
+	if key == "" || word == "" {
+		// consider handling this edge better
+		return
+	}
 
-	key := getKey(word1, word2)
-	wordFreq, ok := s.trigrams[key]
+	wordFreq := s.getWordFreq(key)
+	wordFreq.add(word)
+}
+
+func (s *HashNgrams) getWordFreq(key string) *WordFreq {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	wordFreq, ok := s.ngrams[key]
 	if !ok {
-		s.trigrams[key] = &WordFreq{
+		s.ngrams[key] = &WordFreq{
 			words: map[string]int{},
 		}
-		wordFreq = s.trigrams[key]
+		wordFreq = s.ngrams[key]
 	}
-	wordFreq.add(word3)
+	return wordFreq
 }
 
-func (s *HashNgrams) StoreBigram(word1, word2 string) {
-	s.biMutex.Lock()
-	defer s.biMutex.Unlock()
+func (s *HashNgrams) Get(words ...string) string {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	key := getKey(words...)
 
-	key := word1
-	wordFreq, ok := s.bigrams[key]
-	if !ok {
-		s.bigrams[key] = &WordFreq{
-			words: map[string]int{},
-		}
-		wordFreq = s.bigrams[key]
-	}
-	wordFreq.add(word2)
-}
-
-func (s *HashNgrams) GetTrigram(word1, word2 string) string {
-	s.triMutex.RLock()
-	defer s.triMutex.RUnlock()
-
-	key := getKey(word1, word2)
-	wordFreq, ok := s.trigrams[key]
-	if !ok {
-		// return random word or stop ?
-		return ""
-	}
-	return wordFreq.get(s.random)
-}
-
-func (s *HashNgrams) GetBigram(word1 string) string {
-	s.biMutex.RLock()
-	defer s.biMutex.RUnlock()
-
-	key := word1
-	wordFreq, ok := s.bigrams[key]
+	wordFreq, ok := s.ngrams[key]
 	if !ok {
 		// return random word or stop ?
 		return ""
@@ -81,6 +62,20 @@ func (s *HashNgrams) GetBigram(word1 string) string {
 
 const keySeparator = "-"
 
-func getKey(word1, word2 string) string {
-	return fmt.Sprintf("%s%s%s", word1, keySeparator, word2)
+func getKey(words ...string) string {
+	return strings.Join(words, keySeparator)
+}
+
+func getKeyAndWord(words ...string) (string, string) {
+	length := len(words)
+	if length == 0 {
+		return "", ""
+	}
+	if length == 1 {
+		return words[0], ""
+	}
+	if length == 2 {
+		return words[0], words[1]
+	}
+	return getKey(words[:length-1]...), words[length-1]
 }

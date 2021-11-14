@@ -11,6 +11,7 @@ const newLineCharacter = '\n'
 
 const fullStopWord = "."
 const spaceWord = " "
+const newLineWord = "\n"
 
 const MagicStartToken = "MAGIC_START_TOKEN"
 
@@ -103,9 +104,9 @@ func storeTokens(tokens []string, ngrams state.Ngrams) {
 		}
 
 		if current == MagicStartToken {
-			currentNgrams.StoreBigram(current, next)
+			currentNgrams.Store(current, next)
 		}
 
-		currentNgrams.StoreTrigram(current, next, nextAgain)
+		currentNgrams.Store(current, next, nextAgain)
 	}
 }

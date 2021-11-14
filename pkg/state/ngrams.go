@@ -5,11 +5,15 @@ import (
 	"sync"
 )
 
+// Ngrams stores ngrams such as bigrams (to, be) and trigrams(to, be, or) with the last word
+// in the list being stored as frequency data. This frequency data is used to randomly generate words based on
+// the preceding words.
+// Example:
+// if the the bigram (to, be) is stored twice and the bigram (to, go) is stored once, the func Get(to) will
+// randomly return (be) twice as many times as (go)
 type Ngrams interface {
-	StoreTrigram(word1, word2, word3 string)
-	StoreBigram(word1, word2 string)
-	GetTrigram(word1, word2 string) string
-	GetBigram(word1 string) string
+	Store(words ...string)
+	Get(words ...string) string
 }
 
 type WordFreq struct {

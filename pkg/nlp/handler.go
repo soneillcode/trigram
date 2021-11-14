@@ -10,12 +10,14 @@ import (
 
 // Handler encapsulates http functionality and concerns. It stores a service which handles the actual functionality.
 type Handler struct {
-	service *Service
+	service              *Service
+	defaultNumberOfWords int
 }
 
 func NewHandler(service *Service) *Handler {
 	return &Handler{
-		service: service,
+		service:              service,
+		defaultNumberOfWords: 400, // consider overriding this from a request param
 	}
 }
 
@@ -50,7 +52,7 @@ func (h *Handler) Generate(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	data, err := h.service.Generate()
+	data, err := h.service.Generate(h.defaultNumberOfWords)
 	if err != nil {
 		log.Printf("service failed to handle 'generate': %v", err)
 		routing.Error(res, req, http.StatusInternalServerError)
