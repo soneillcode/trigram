@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"example.com/todo/pkg/nlp"
+	"github.com/soneillcode/trigram/pkg/nlp"
 )
 
 func main() {

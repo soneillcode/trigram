@@ -1,6 +1,6 @@
 package nlp
 
-import "example.com/todo/pkg/state"
+import "github.com/soneillcode/trigram/pkg/state"
 
 var titles = []string{"Mr", "Mrs", "Dr", "Ms"}
 var ignoreCharacters = []rune{',', ';', ':', '_', '"', '“', '”', '“'}

@@ -3,7 +3,7 @@ package nlp
 import (
 	"strings"
 
-	"example.com/todo/pkg/state"
+	"github.com/soneillcode/trigram/pkg/state"
 )
 
 // Service provides a Learn and Generate feature which stores data as ngrams and uses the ngrams to randomly generate
