@@ -5,15 +5,13 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"example.com/todo/pkg/nlp"
 )
 
 func main() {
 	if err := run(); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
-		os.Exit(1)
+		log.Fatalf("%s\n", err)
 	}
 }
 

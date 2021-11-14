@@ -12,13 +12,15 @@ import (
 // Tokens are handled as arrays of string for simplicity. If performance needs improving,  could be converted to a
 // data structure that processes the tokens one by one to reduce copying the arrays.
 type Service struct {
-	ngrams state.Ngrams
+	ngrams               state.Ngrams
+	defaultNumberOfWords int
 }
 
 // NewService returns a new instance of a Service.
 func NewService() *Service {
 	return &Service{
-		ngrams: state.NewHashNgrams(),
+		ngrams:               state.NewHashNgrams(),
+		defaultNumberOfWords: 200,
 	}
 }
 
@@ -33,8 +35,8 @@ func (s *Service) Learn(text string) {
 }
 
 // Generate uses trigram word frequency data to randomly generate a body of text.
-func (s *Service) Generate(numTokens int) (*string, error) {
-	tokens := generateTokens(s.ngrams, numTokens)
+func (s *Service) Generate() (*string, error) {
+	tokens := generateTokens(s.ngrams, s.defaultNumberOfWords)
 	tokens = filterTokens(tokens)
 	tokens = addSpaceTokens(tokens)
 	text := toString(tokens)
