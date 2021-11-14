@@ -6,15 +6,11 @@ import (
 	"example.com/todo/pkg/state"
 )
 
-/*
-	Notes:
-	Tokens are handled as arrays of string for simplicity and clarify of the logic. If performance needs improving,
-	these arrays could be converted to a data structure that processes the tokens one by one to reduce copying the
-	arrays.
-*/
-
 // Service provides a Learn and Generate feature which stores data as ngrams and uses the ngrams to randomly generate
 // text based on stored word frequency.
+//
+// Tokens are handled as arrays of string for simplicity. If performance needs improving,  could be converted to a
+// data structure that processes the tokens one by one to reduce copying the arrays.
 type Service struct {
 	ngrams state.Ngrams
 }

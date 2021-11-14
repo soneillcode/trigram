@@ -17,7 +17,7 @@ type Handler struct {
 func NewHandler(service *Service) *Handler {
 	return &Handler{
 		service:              service,
-		defaultNumberOfWords: 400, // consider overriding this from a request param
+		defaultNumberOfWords: 200, // consider overriding this from a request param
 	}
 }
 
@@ -40,12 +40,7 @@ func (h *Handler) Learn(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = h.service.Learn(string(buf))
-	if err != nil {
-		log.Printf("service failed to handle 'learn': %v", err)
-		routing.Error(res, req, http.StatusInternalServerError)
-		return
-	}
+	h.service.Learn(string(buf))
 
 	routing.Respond(res, req, http.StatusOK, nil)
 }
