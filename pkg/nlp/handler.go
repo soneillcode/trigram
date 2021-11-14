@@ -34,6 +34,11 @@ func (h *Handler) Learn(res http.ResponseWriter, req *http.Request) {
 		routing.Error(res, req, http.StatusBadRequest)
 		return
 	}
+	if len(buf) == 0 {
+		log.Printf("request body is empty")
+		routing.Error(res, req, http.StatusBadRequest)
+		return
+	}
 
 	err = h.service.Learn(string(buf))
 	if err != nil {
@@ -45,7 +50,7 @@ func (h *Handler) Learn(res http.ResponseWriter, req *http.Request) {
 	routing.Respond(res, req, http.StatusOK, nil)
 }
 
-// Generate handles http GET requests, generating a new sample of text using the body of data and returning it.
+// Generate handles http GET requests, randomly generating a new sample of text using the body of data and returning it.
 func (h *Handler) Generate(res http.ResponseWriter, req *http.Request) {
 	if req.Method != "GET" {
 		routing.Error(res, req, http.StatusBadRequest)

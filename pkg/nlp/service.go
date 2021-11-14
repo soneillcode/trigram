@@ -1,11 +1,17 @@
 package nlp
 
 import (
-	"fmt"
 	"strings"
 
 	"example.com/todo/pkg/state"
 )
+
+/*
+	Notes:
+	Tokens are handled as arrays of string for simplicity and clarify of the logic. If performance needs improving,
+	these arrays could be converted to a data structure that processes the tokens one by one to reduce copying the
+	arrays.
+*/
 
 // Service provides a Learn and Generate feature which stores data as ngrams and uses the ngrams to randomly generate
 // text based on stored word frequency.
@@ -21,15 +27,13 @@ func NewService() *Service {
 }
 
 // Learn takes a body of text, tokenizes it and stores the tokens as ngrams with their frequency.
-func (s *Service) Learn(text string) error {
+func (s *Service) Learn(text string) {
 	if text == "" {
-		return fmt.Errorf("missing data to learn")
+		return
 	}
 
-	// consider processing tokens as they are created, to save storing them all.
 	tokens := getTokens(text)
 	storeTokens(tokens, s.ngrams)
-	return nil
 }
 
 // Generate uses trigram word frequency data to randomly generate a body of text.

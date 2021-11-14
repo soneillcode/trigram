@@ -18,7 +18,6 @@ func main() {
 }
 
 func run() error {
-
 	var port string
 	flag.StringVar(&port, "port", "8080", "the port the service is listening on")
 	flag.Parse()
@@ -29,7 +28,6 @@ func run() error {
 	http.HandleFunc("/learn", nlpHandler.Learn)
 	http.HandleFunc("/generate", nlpHandler.Generate)
 
-	// start server
 	log.Printf("starting server on port: %s\n", port)
 	err := http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 	if err != nil {
