@@ -25,6 +25,7 @@ func NewService() *Service {
 }
 
 // Learn takes a body of text, tokenizes it and stores the tokens as ngrams with their frequency.
+// consider taking a io.Reader instead.
 func (s *Service) Learn(text string) {
 	if text == "" {
 		return

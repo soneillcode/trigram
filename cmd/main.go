@@ -5,32 +5,31 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"example.com/todo/pkg/nlp"
 )
 
 func main() {
-	if err := run(); err != nil {
-		log.Fatalf("%s\n", err)
-	}
-}
-
-func run() error {
 	var port string
 	flag.StringVar(&port, "port", "8080", "the port the service is listening on")
 	flag.Parse()
 
+	logger := log.New(os.Stdout, "nlp: ", log.Ldate|log.Ltime|log.Lshortfile)
+
 	nlpService := nlp.NewService()
-	nlpHandler := nlp.NewHandler(nlpService)
+	nlpHandler := nlp.NewHandler(nlpService, logger)
 
 	http.HandleFunc("/learn", nlpHandler.Learn)
 	http.HandleFunc("/generate", nlpHandler.Generate)
 
-	log.Printf("starting server on port: %s\n", port)
-	err := http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
-	if err != nil {
-		return fmt.Errorf("failed to listen and serve: %w", err)
+	logger.Printf("starting server on port: %s\n", port)
+	server := http.Server{
+		Addr:     fmt.Sprintf(":%s", port),
+		ErrorLog: logger,
 	}
-
-	return nil
+	err := server.ListenAndServe()
+	if err != nil {
+		logger.Fatalf("failed to listen and serve: %s", err)
+	}
 }
