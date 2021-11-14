@@ -20,6 +20,9 @@ type node struct {
 	value *wordFreq
 }
 
+// NewBstNgrams creates a new Ngrams which implements Ngrams using a Binary Search Tree. The binary search tree can
+// potentially have O(log n)search and insert. There is additional overhead due to the pointers for the structure,
+// however the separation of the keys allows us to lock small parts of the tree to allow faster concurrency safe writes.
 func NewBstNgrams() Ngrams {
 	return &bstNgrams{
 		mutex:  sync.RWMutex{},

@@ -12,6 +12,7 @@ type Handler struct {
 	logger  *log.Logger
 }
 
+// NewHandler returns a new instance of a Handler
 func NewHandler(service *Service, logger *log.Logger) *Handler {
 	return &Handler{
 		service: service,
@@ -19,7 +20,7 @@ func NewHandler(service *Service, logger *log.Logger) *Handler {
 	}
 }
 
-// Learn handles http POST requests of text data and adds it to the existing body of data.
+// Learn handles http POST requests. It takes text data from the request and adds it to the existing data.
 func (h *Handler) Learn(res http.ResponseWriter, req *http.Request) {
 	if req.Method != "POST" {
 		h.respondWithError(res, http.StatusBadRequest)
@@ -42,7 +43,7 @@ func (h *Handler) Learn(res http.ResponseWriter, req *http.Request) {
 	h.respond(res, http.StatusOK, nil)
 }
 
-// Generate handles http GET requests, randomly generating a new sample of text using the body of data and returning it.
+// Generate handles http GET requests. It randomly generates a new sample of text using the stored data and returns it.
 func (h *Handler) Generate(res http.ResponseWriter, req *http.Request) {
 	if req.Method != "GET" {
 		h.respondWithError(res, http.StatusBadRequest)

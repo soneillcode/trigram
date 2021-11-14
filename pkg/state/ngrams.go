@@ -9,6 +9,7 @@ import (
 // Ngrams stores ngrams such as bigrams (to, be) and trigrams(to, be, or) with the last word
 // in the list being stored as frequency data. This frequency data is used to randomly generate words based on
 // the preceding words.
+//
 // Example:
 // if the the bigram (to, be) is stored twice and the bigram (to, go) is stored once, the func Get(to) will
 // randomly return (be) twice as many times as (go)

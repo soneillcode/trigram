@@ -6,14 +6,14 @@ import (
 	"time"
 )
 
-// hashNgrams implements Ngrams using a hash map. It uses hash for fast reads. A hash map is not safe for concurrent
-// writes, so we lock a mutex to prevent concurrent writes.
 type hashNgrams struct {
 	mutex  sync.RWMutex
 	ngrams map[string]*wordFreq
 	random *rand.Rand
 }
 
+// NewHashNgrams creates an Ngrams which implements Ngrams using a hash map. It uses hash for fast reads. A hash map
+// is not safe for concurrent writes, so we lock a mutex to prevent concurrent writes.
 func NewHashNgrams() Ngrams {
 	return &hashNgrams{
 		mutex:  sync.RWMutex{},
