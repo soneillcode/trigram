@@ -11,13 +11,13 @@ import (
 // text based on stored word frequency.
 type Service struct {
 	defaultNumberSentences int
-	standardNgrams         *state.Ngrams
+	standardNgrams         state.Ngrams
 }
 
 func NewService() *Service {
 	return &Service{
 		defaultNumberSentences: 12,
-		standardNgrams:         state.NewNgrams(),
+		standardNgrams:         state.NewHashNgrams(),
 	}
 }
 
@@ -40,7 +40,7 @@ func (s *Service) Generate() (*string, error) {
 	builder.Grow(500)
 
 	var newWord string
-	var word1, word2 = getStartingWords(s.standardNgrams, state.MagicStartToken)
+	var word1, word2 = getStartingWords(s.standardNgrams, MagicStartToken)
 	builder.WriteString(word1)
 	builder.WriteString(spaceWord)
 	builder.WriteString(word2)
@@ -49,7 +49,7 @@ func (s *Service) Generate() (*string, error) {
 	numTokens := 0
 	for numSentences := 0; numSentences < s.defaultNumberSentences; {
 
-		if word2 == state.MagicStartToken {
+		if word2 == MagicStartToken {
 			newWord = s.standardNgrams.GetBigram(word2)
 		} else {
 			newWord = s.standardNgrams.GetTrigram(word1, word2)
@@ -58,7 +58,7 @@ func (s *Service) Generate() (*string, error) {
 		word1 = word2
 		word2 = newWord
 
-		if newWord == state.MagicStartToken {
+		if newWord == MagicStartToken {
 			numSentences = numSentences + 1
 			continue
 		}
@@ -79,29 +79,13 @@ func (s *Service) Generate() (*string, error) {
 	return &text, nil
 }
 
-func getStartingWords(ngram *state.Ngrams, startToken string) (string, string) {
-	// to prevent infinite loops, consider getting a 'safe' Bigram that's guaranteed to be a word
-	var saneLimit = 1000
-	var currentIterations = 0
-
+// Minor issue, sometimes we return Magic start tokens. The normal loop deals with this condition but
+// we need special handling for the initial words.
+func getStartingWords(ngram state.Ngrams, startToken string) (string, string) {
 	var word1 = ngram.GetBigram(startToken)
-	for word1 == state.MagicStartToken {
-		currentIterations = currentIterations + 1
-		if currentIterations > saneLimit {
-			break
-		}
-		word1 = ngram.GetBigram(startToken)
-	}
-
-	currentIterations = 0
 	var word2 = ngram.GetTrigram(startToken, word1)
-	for word2 == state.MagicStartToken {
-		currentIterations = currentIterations + 1
-		if currentIterations > saneLimit {
-			break
-		}
-		word2 = ngram.GetTrigram(startToken, word1)
+	if word2 == MagicStartToken {
+		word2 = ngram.GetBigram(startToken)
 	}
-
 	return word1, word2
 }

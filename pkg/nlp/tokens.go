@@ -12,6 +12,8 @@ const newLineCharacter = '\n'
 const fullStopWord = "."
 const spaceWord = " "
 
+const MagicStartToken = "MAGIC_START_TOKEN"
+
 // getTokens iterates through a body of text and creates tokens delineated by space and newline characters.
 // tokens are defined as strings of non-space characters. It also adds magic tokens to mark the start and end of sentences.
 // Sentences are handled as a special case to improve the quality of text generation.
@@ -19,7 +21,7 @@ func getTokens(text string) []string {
 	var tokens []string
 	var word []rune
 
-	tokens = append(tokens, state.MagicStartToken)
+	tokens = append(tokens, MagicStartToken)
 	for _, character := range text {
 
 		if character == spaceCharacter || character == newLineCharacter {
@@ -52,7 +54,7 @@ func getTokens(text string) []string {
 					}
 					tokens = append(tokens, fullStopWord)
 					word = word[:0]
-					tokens = append(tokens, state.MagicStartToken)
+					tokens = append(tokens, MagicStartToken)
 				}
 				continue
 			}
@@ -85,7 +87,7 @@ func isTitle(word string) bool {
 }
 
 // storeTokens puts the given tokens in the ngram data structure.
-func storeTokens(tokens []string, ngrams *state.Ngrams) {
+func storeTokens(tokens []string, ngrams state.Ngrams) {
 	length := len(tokens)
 	var currentNgrams = ngrams
 
@@ -95,14 +97,15 @@ func storeTokens(tokens []string, ngrams *state.Ngrams) {
 		next := tokens[i+1]
 		nextAgain := tokens[i+2]
 
-		if current == state.MagicStartToken {
+		// we don't store data that crosses magic tokens, this allows flexibility when generating
+		if next == MagicStartToken {
+			continue
+		}
+
+		if current == MagicStartToken {
 			currentNgrams.StoreBigram(current, next)
 		}
 
-		// we don't store data that crosses magic tokens, this allows flexibility when generating
-		if next == state.MagicStartToken {
-			continue
-		}
 		currentNgrams.StoreTrigram(current, next, nextAgain)
 	}
 }
