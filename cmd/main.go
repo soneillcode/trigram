@@ -4,8 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/soneillcode/trigram/pkg/nlp"
 )
@@ -16,8 +18,10 @@ func main() {
 	flag.Parse()
 
 	logger := log.New(os.Stdout, "nlp: ", log.Ldate|log.Ltime|log.Lshortfile)
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	nlpService := nlp.NewService()
+	const defaultNumberOfWords = 200
+	nlpService := nlp.NewService(random, defaultNumberOfWords)
 	nlpHandler := nlp.NewHandler(nlpService, logger)
 
 	http.HandleFunc("/learn", nlpHandler.Learn)

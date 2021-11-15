@@ -1,6 +1,7 @@
 package nlp
 
 import (
+	"math/rand"
 	"strings"
 
 	"github.com/soneillcode/trigram/pkg/state"
@@ -17,10 +18,10 @@ type Service struct {
 }
 
 // NewService returns a new instance of a Service.
-func NewService() *Service {
+func NewService(random *rand.Rand, defaultNumberOfWords int) *Service {
 	return &Service{
-		ngrams:               state.NewHashNgrams(),
-		defaultNumberOfWords: 200,
+		ngrams:               state.NewHashNgrams(random),
+		defaultNumberOfWords: defaultNumberOfWords,
 	}
 }
 
@@ -36,12 +37,12 @@ func (s *Service) Learn(text string) {
 }
 
 // Generate uses trigram word frequency data to randomly generate a body of text.
-func (s *Service) Generate() (*string, error) {
+func (s *Service) Generate() string {
 	tokens := generateTokens(s.ngrams, s.defaultNumberOfWords)
 	tokens = filterTokens(tokens)
 	tokens = addSpaceTokens(tokens)
 	text := toString(tokens)
-	return &text, nil
+	return text
 }
 
 func generateTokens(ngrams state.Ngrams, maxTokens int) []string {
@@ -64,7 +65,6 @@ func generateTokens(ngrams state.Ngrams, maxTokens int) []string {
 		tokens = append(tokens, newWord)
 	}
 
-	tokens = append(tokens, newLineWord)
 	return tokens
 }
 

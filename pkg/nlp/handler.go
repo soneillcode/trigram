@@ -50,13 +50,8 @@ func (h *Handler) Generate(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	data, err := h.service.Generate()
-	if err != nil {
-		h.logger.Printf("service failed to handle 'generate': %v", err)
-		h.respondWithError(res, http.StatusInternalServerError)
-		return
-	}
-	h.respond(res, http.StatusOK, data)
+	data := h.service.Generate()
+	h.respond(res, http.StatusOK, &data)
 }
 
 func (h *Handler) respond(res http.ResponseWriter, status int, data *string) {

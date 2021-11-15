@@ -66,6 +66,9 @@ func getTokens(text string) []string {
 		// handle standard character
 		word = append(word, character)
 	}
+	if len(word) > 0 {
+		tokens = append(tokens, string(word))
+	}
 	return tokens
 }
 

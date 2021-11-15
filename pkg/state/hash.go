@@ -3,7 +3,6 @@ package state
 import (
 	"math/rand"
 	"sync"
-	"time"
 )
 
 type hashNgrams struct {
@@ -14,11 +13,11 @@ type hashNgrams struct {
 
 // NewHashNgrams creates an Ngrams which implements Ngrams using a hash map. It uses hash for fast reads. A hash map
 // is not safe for concurrent writes, so we lock a mutex to prevent concurrent writes.
-func NewHashNgrams() Ngrams {
+func NewHashNgrams(random *rand.Rand) Ngrams {
 	return &hashNgrams{
 		mutex:  sync.RWMutex{},
 		ngrams: map[string]*wordFreq{},
-		random: rand.New(rand.NewSource(time.Now().UnixNano())),
+		random: random,
 	}
 }
 

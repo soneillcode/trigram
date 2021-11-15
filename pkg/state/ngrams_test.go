@@ -3,16 +3,10 @@ package state
 import (
 	"fmt"
 	"math/rand"
+	"sync"
 	"testing"
 	"time"
 )
-
-func testNgramImpl(name string, implFunc func() Ngrams, t *testing.T) {
-	testEmptyStoreAndGet(name, implFunc, t)
-	testBasicBigramStoreAndGet(name, implFunc, t)
-	testBasicTrigramStoreAndGet(name, implFunc, t)
-	testWordFrequency(name, implFunc, t)
-}
 
 func testEmptyStoreAndGet(name string, newNgramFunc func() Ngrams, t *testing.T) {
 	impl := newNgramFunc()
@@ -69,6 +63,38 @@ func testWordFrequency(name string, newNgramFunc func() Ngrams, t *testing.T) {
 	}
 	if results["two"] < 100-tolerance || results["two"] > 100+tolerance {
 		t.Errorf("for type %s: failed to get expected frequency of random words. expected 10 percent of words to be: '%s', but was actually: %v", name, "two", results["two"]/10)
+	}
+}
+
+func testConcurrentAccess(name string, newNgramFunc func() Ngrams, t *testing.T) {
+	impl := newNgramFunc()
+	mutex := sync.Mutex{}
+	waitGroup := sync.WaitGroup{}
+
+	impl.Store("A", "specific", "piece") // we pre-store a value as the read can happen before the write
+
+	results := map[int]string{}
+	for i := 0; i < 1000; i = i + 1 {
+		waitGroup.Add(2)
+		go func() {
+			impl.Store("A", "specific", "piece")
+			waitGroup.Done()
+		}()
+		go func(index int) {
+			mutex.Lock()
+			results[index] = impl.Get("A", "specific")
+			mutex.Unlock()
+			waitGroup.Done()
+		}(i)
+	}
+
+	waitGroup.Wait()
+
+	expected := "piece"
+	for _, result := range results {
+		if result != expected {
+			t.Errorf("for type: %s: generate did not generate the expected result: got: '%s' expected: '%s'", name, result, expected)
+		}
 	}
 }
 

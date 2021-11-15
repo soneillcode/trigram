@@ -3,7 +3,6 @@ package state
 import (
 	"math/rand"
 	"sync"
-	"time"
 )
 
 type bstNgrams struct {
@@ -23,10 +22,10 @@ type node struct {
 // NewBstNgrams creates a new Ngrams which implements Ngrams using a Binary Search Tree. The binary search tree can
 // potentially have O(log n)search and insert. There is additional overhead due to the pointers for the structure,
 // however the separation of the keys allows us to lock small parts of the tree to allow faster concurrency safe writes.
-func NewBstNgrams() Ngrams {
+func NewBstNgrams(random *rand.Rand) Ngrams {
 	return &bstNgrams{
 		mutex:  sync.RWMutex{},
-		random: rand.New(rand.NewSource(time.Now().UnixNano())),
+		random: random,
 	}
 }
 
@@ -49,7 +48,7 @@ func (b *bstNgrams) Store(words ...string) {
 }
 
 func (n *node) insert(key string, word string) {
-	if n.key == key {
+	if key == n.key {
 		n.value.add(word)
 		return
 	}
@@ -58,6 +57,7 @@ func (n *node) insert(key string, word string) {
 			n.mutex.Lock()
 			if n.left == nil {
 				n.left = &node{
+					key:   key,
 					value: newWordFreq(),
 				}
 			}
@@ -71,6 +71,7 @@ func (n *node) insert(key string, word string) {
 			n.mutex.Lock()
 			if n.right == nil {
 				n.right = &node{
+					key:   key,
 					value: newWordFreq(),
 				}
 			}
