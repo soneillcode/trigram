@@ -20,7 +20,7 @@ type Service struct {
 // NewService returns a new instance of a Service.
 func NewService(random *rand.Rand, defaultNumberOfWords int) *Service {
 	return &Service{
-		ngrams:               state.NewHashNgrams(random),
+		ngrams:               state.NewBucketNgrams(random, 1024, 256),
 		defaultNumberOfWords: defaultNumberOfWords,
 	}
 }

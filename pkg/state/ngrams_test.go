@@ -19,6 +19,8 @@ func testEmptyStoreAndGet(name string, newNgramFunc func() Ngrams, t *testing.T)
 func testBasicBigramStoreAndGet(name string, newNgramFunc func() Ngrams, t *testing.T) {
 	impl := newNgramFunc()
 	impl.Store("foo", "bar")
+	time.Sleep(time.Millisecond * 100)
+
 	word := impl.Get("foo")
 	if word != "bar" {
 		t.Errorf("for type %s: failed to get stored bigram", name)
@@ -28,6 +30,8 @@ func testBasicBigramStoreAndGet(name string, newNgramFunc func() Ngrams, t *test
 func testBasicTrigramStoreAndGet(name string, newNgramFunc func() Ngrams, t *testing.T) {
 	impl := newNgramFunc()
 	impl.Store("to", "be", "or")
+	time.Sleep(time.Millisecond * 100)
+
 	word := impl.Get("to", "be")
 	if word != "or" {
 		t.Errorf("for type %s: failed to get stored trigram", name)
@@ -46,8 +50,8 @@ func testWordFrequency(name string, newNgramFunc func() Ngrams, t *testing.T) {
 	impl.Store("to", "be", "one")
 	impl.Store("to", "be", "one")
 	impl.Store("to", "be", "one")
-
 	impl.Store("to", "be", "two")
+	time.Sleep(time.Millisecond * 100)
 
 	results := map[string]int{}
 	// we use 100 as a rough percentage estimation
@@ -72,6 +76,7 @@ func testConcurrentAccess(name string, newNgramFunc func() Ngrams, t *testing.T)
 	waitGroup := sync.WaitGroup{}
 
 	impl.Store("A", "specific", "piece") // we pre-store a value as the read can happen before the write
+	time.Sleep(time.Millisecond * 100)
 
 	results := map[int]string{}
 	for i := 0; i < 1000; i = i + 1 {
